@@ -1,28 +1,33 @@
 from os.path import join
-import numpy as np
 import pandas as pd
-
 from feature.dataset import make_dataset
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
+
 from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import mean_absolute_error
-from category_encoders import *
 
-train_path = join('jeju_data', 'train_new.parquet')
-test_path = join('jeju_data', 'test_new.parquet')
-holiday_path = join('jeju_data', '국가공휴일.csv')
-
-sample_submission = pd.read_csv('./jeju_data/sample_submission.csv')
-
-x_train, y_train, test = make_dataset(train_path, test_path, holiday_path)
-X = x_train.copy()
-y = y_train.copy()
-df = pd.concat([X, y], axis=1)
 
 import optuna
 from optuna import Trial
 from optuna.samplers import TPESampler
+
+
+train_path = join('jeju_data', 'train_new.parquet')
+test_path = join('jeju_data', 'test_new.parquet')
+holiday_path = join('jeju_data', '국가공휴일.csv')
+tour_path = join('jeju_data', 'AT4_2000.csv')
+submission_path = join('jeju_data', 'sample_submission.csv')
+
+
+x_train, y_train, test = make_dataset(train_path, test_path, holiday_path, tour_path)
+sample_submission = pd.read_csv(submission_path)
+
+
+X = x_train.copy()
+y = y_train.copy()
+
+
 
 
 def objective_xgb(trial: Trial, x, y):
@@ -54,11 +59,6 @@ study.optimize(lambda trial: objective_xgb(trial, X, y), n_trials=30)
 print('Best trial: score {},\nparams {}'.format(study.best_trial.value, study.best_trial.params))
 
 
-from sklearn.model_selection import StratifiedKFold
-from xgboost import XGBRegressor
-from sklearn.metrics import mean_absolute_error
-
-
 param = study.best_trial.params
 
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -87,14 +87,11 @@ for f in range(5):
               
 
 
-sample_submission = pd.read_csv('./jeju_data/sample_submission.csv')
 
 for fold in range(5):
     sample_submission['target'] += XGB_model[fold].predict(test)/5    
+    sample_submission.to_csv("./submit_xgb_fold.csv", index=False)
     
-
-param = study.best_trial.params
-sample_submission.to_csv("./submit_xgb_fold.csv", index=False)
 df_imp = pd.DataFrame({'imp':XGB.feature_importances_}, index = XGB.feature_names_in_)
 df_imp = df_imp[df_imp.imp > 0].sort_values('imp').copy()
 print(df_imp)
