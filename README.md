@@ -170,3 +170,6 @@ Voting
 - 주최 : 제주 테크노파크, 제주특별자치도
 - 주관 : DACON
 - https://dacon.io/competitions/official/235985/overview/description
+
+## ❔Comments
+[참여 후기](https://blog.naver.com/mbk1103_/222944551279)
